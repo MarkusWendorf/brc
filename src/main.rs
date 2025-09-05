@@ -9,7 +9,6 @@ use std::fs::OpenOptions;
 use std::io::{self, Write};
 
 use std::thread;
-use std::time::Instant;
 
 use memmap2::MmapMut;
 
@@ -17,16 +16,13 @@ use crate::data::Data;
 use crate::processing::process_chunk;
 
 fn main() -> io::Result<()> {
-    let file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open("/Users/mwendorf/projects/brc/data.txt")?;
+    let file = OpenOptions::new().read(true).write(true).open("data.txt")?;
 
     let mut mmap = unsafe { MmapMut::map_mut(&file)? };
     mmap.advise(memmap2::Advice::Sequential).unwrap();
 
-    let chunk_count = 12;
-    let mut indices: [std::ops::Range<usize>; 12] = Default::default();
+    let chunk_count = 10;
+    let mut indices: [std::ops::Range<usize>; 10] = Default::default();
 
     let total_length = mmap.len();
 
@@ -86,8 +82,6 @@ fn main() -> io::Result<()> {
         let processed_parts: Vec<HashMap<String, Data>> =
             parts.map(|p| p.join().unwrap()).collect();
 
-        let t = Instant::now();
-
         let mut station_keys: HashSet<&String> = HashSet::new();
 
         for part in processed_parts.iter() {
@@ -110,33 +104,31 @@ fn main() -> io::Result<()> {
             }
         }
 
-        println!("{:?}", t.elapsed());
+        {
+            let mut stdout = std::io::stdout().lock();
+            stdout.write(b"{").unwrap();
 
-        // {
-        //     let mut stdout = std::io::stdout().lock();
-        //     stdout.write(b"{").unwrap();
+            let last_index = combined.len() - 1;
+            for (i, (station, data)) in combined.iter().enumerate() {
+                let mean = data.total as f32 / data.count as f32;
 
-        //     let last_index = combined.len() - 1;
-        //     for (i, (station, data)) in combined.iter().enumerate() {
-        //         let mean = data.total as f32 / data.count as f32;
+                let line = station.to_owned()
+                    + "="
+                    + format_number(data.min).as_str()
+                    + "/"
+                    + format_mean(mean).as_str()
+                    + "/"
+                    + format_number(data.max).as_str();
 
-        //         let line = station.to_owned()
-        //             + "="
-        //             + format_number(data.min).as_str()
-        //             + "/"
-        //             + format_mean(mean).as_str()
-        //             + "/"
-        //             + format_number(data.max).as_str();
+                stdout.write(&line.as_bytes()).unwrap();
 
-        //         stdout.write(&line.as_bytes()).unwrap();
+                if i != last_index {
+                    stdout.write(b", ").unwrap();
+                }
+            }
 
-        //         if i != last_index {
-        //             stdout.write(b", ").unwrap();
-        //         }
-        //     }
-
-        //     stdout.write(b"}").unwrap();
-        // }
+            stdout.write(b"}").unwrap();
+        }
     });
 
     Ok(())

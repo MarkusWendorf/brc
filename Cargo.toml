@@ -4,11 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ahash = "0.8.12"
-heapless = "0.9.1"
-memchr = "2.7.5"
 memmap2 = "0.9.8"
-rayon = "1.11.0"
 
 [dependencies.xxhash-rust]
 version = "0.8.12"

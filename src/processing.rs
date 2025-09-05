@@ -8,7 +8,7 @@ pub fn process_temperature(data: &[u8]) -> i16 {
     let mut exponent = 0;
 
     for val in data.iter().rev() {
-        match *val {
+        match val {
             b'.' => continue,
             b'-' => sum *= -1,
             digit => {
@@ -36,12 +36,11 @@ pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Vec<i16>, FastHashBuilder> {
             let temp = process_temperature(&data[start..i]);
             temps
                 .entry(station_key)
-                .or_insert_with(|| Vec::with_capacity(512))
-                .push(temp);
+                .and_modify(|temps| temps.push(temp))
+                .or_insert_with(|| Vec::with_capacity(512));
             start = i + 1;
         }
     }
 
-    println!("x{}", temps.values().fold(0, |_, v| v.len()));
     temps
 }
