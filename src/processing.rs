@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::fast_hash::FastHashBuilder;
+use crate::{data::Data, fast_hash::FastHashBuilder};
 
 #[inline(always)]
 pub fn process_temperature(data: &[u8]) -> i16 {
@@ -21,8 +21,8 @@ pub fn process_temperature(data: &[u8]) -> i16 {
     sum
 }
 
-pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Vec<i16>, FastHashBuilder> {
-    let mut temps: HashMap<&[u8], Vec<i16>, FastHashBuilder> =
+pub fn process_chunk(data: Vec<u8>) -> HashMap<Vec<u8>, Data, FastHashBuilder> {
+    let mut temps: HashMap<Vec<u8>, Data, FastHashBuilder> =
         HashMap::with_capacity_and_hasher(512, FastHashBuilder);
 
     let mut start = 0;
@@ -38,10 +38,18 @@ pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Vec<i16>, FastHashBuilder> {
             let temperature = unsafe { data.get_unchecked(start..i) };
 
             let temp = process_temperature(temperature);
+
+            let station = Vec::from(station_key);
+
             temps
-                .entry(station_key)
-                .and_modify(|temps| temps.push(temp))
-                .or_insert_with(|| Vec::with_capacity(512));
+                .entry(station.clone())
+                .and_modify(|temps| temps.update(temp))
+                .or_insert_with(|| Data {
+                    min: temp,
+                    max: temp,
+                    count: 1,
+                    total: 1,
+                });
             start = i + 1;
         }
     }

@@ -1,6 +1,5 @@
 #[derive(Default, Debug, Clone)]
 pub struct Data {
-    pub station: String,
     pub min: i16,
     pub max: i16,
     pub total: u32,
