@@ -30,10 +30,14 @@ pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Vec<i16>, FastHashBuilder> {
 
     for (i, &b) in data.iter().enumerate() {
         if b == b';' {
-            station_key = &data[start..i];
+            // get_unchecked is safe because we know the range exists because we just iterated over it
+            station_key = unsafe { data.get_unchecked(start..i) };
             start = i + 1;
         } else if b == b'\n' {
-            let temp = process_temperature(&data[start..i]);
+            // get_unchecked is safe because we know the range exists because we just iterated over it
+            let temperature = unsafe { data.get_unchecked(start..i) };
+
+            let temp = process_temperature(temperature);
             temps
                 .entry(station_key)
                 .and_modify(|temps| temps.push(temp))

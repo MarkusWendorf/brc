@@ -4,7 +4,7 @@ mod data;
 mod fast_hash;
 mod processing;
 
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::fs::OpenOptions;
 use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::thread::{self, available_parallelism};
@@ -12,8 +12,10 @@ use std::thread::{self, available_parallelism};
 use crate::data::Data;
 use crate::processing::process_chunk;
 
+static FILE_PATH: &str = "data.txt";
+
 fn main() -> io::Result<()> {
-    let file = OpenOptions::new().read(true).write(true).open("data.txt")?;
+    let file = OpenOptions::new().read(true).open(FILE_PATH)?;
     let mut reader = BufReader::new(file);
 
     let total_length = reader.get_ref().metadata()?.len() as usize;
@@ -49,7 +51,7 @@ fn main() -> io::Result<()> {
             .into_iter()
             .map(|range| {
                 scope.spawn(move || {
-                    let file = OpenOptions::new().read(true).open("data.txt").unwrap();
+                    let file = OpenOptions::new().read(true).open(FILE_PATH).unwrap();
                     let mut reader = BufReader::new(file);
                     reader.seek(SeekFrom::Start(range.start as u64)).unwrap();
 
@@ -76,22 +78,13 @@ fn main() -> io::Result<()> {
         let processed_parts: Vec<HashMap<String, Data>> =
             parts.into_iter().map(|p| p.join().unwrap()).collect();
 
-        let mut station_keys: HashSet<&String> = HashSet::new();
-        for part in processed_parts.iter() {
-            for key in part.keys() {
-                station_keys.insert(key);
-            }
-        }
-
         let mut combined: BTreeMap<String, Data> = BTreeMap::new();
-        for part in processed_parts.iter() {
-            for key in station_keys.iter() {
-                if let Some(data) = part.get(*key) {
-                    combined
-                        .entry((*key).clone())
-                        .and_modify(|d| d.merge(data))
-                        .or_insert(data.clone());
-                }
+        for part in processed_parts {
+            for (key, data) in part {
+                combined
+                    .entry(key)
+                    .and_modify(|d| d.merge(&data))
+                    .or_insert(data);
             }
         }
 
