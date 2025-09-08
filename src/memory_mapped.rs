@@ -2,9 +2,7 @@ use std::{array::from_fn, fs::OpenOptions, thread};
 
 use memmap2::MmapMut;
 
-use crate::{
-    processing::{output_results, process_chunk},
-};
+use crate::processing::{output_results, process_chunk};
 
 pub fn memory_mapped(file_path: &str) {
     let file = OpenOptions::new()
@@ -52,12 +50,9 @@ pub fn memory_mapped(file_path: &str) {
         let chunks = mmap.get_disjoint_mut(indices).unwrap();
 
         chunks
-            .map(|chunk| {
-                scope
-                    .spawn(|| process_chunk(chunk))
-            })
+            .map(|chunk| scope.spawn(|| process_chunk(chunk)))
             .into_iter()
-            .map(|handle| handle.join().unwrap() )
+            .map(|handle| handle.join().unwrap())
             .collect::<Vec<_>>()
     });
 

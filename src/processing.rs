@@ -1,5 +1,7 @@
 use std::{
+    borrow::Borrow,
     collections::{BTreeMap, HashMap},
+    hash::Hash,
     io::Write,
 };
 
@@ -24,8 +26,8 @@ pub fn process_temperature(data: &[u8]) -> i16 {
     sum
 }
 
-pub fn process_chunk_vec(data: Vec<u8>) -> HashMap< Vec<u8>, Data, FastHashBuilder> {
-    let mut temps: HashMap< Vec<u8>, Data, FastHashBuilder> =
+pub fn process_chunk_vec(data: Vec<u8>) -> HashMap<Vec<u8>, Data, FastHashBuilder> {
+    let mut temps: HashMap<Vec<u8>, Data, FastHashBuilder> =
         HashMap::with_capacity_and_hasher(512, FastHashBuilder);
 
     let mut start = 0;
@@ -57,7 +59,6 @@ pub fn process_chunk_vec(data: Vec<u8>) -> HashMap< Vec<u8>, Data, FastHashBuild
 
     temps
 }
-
 
 pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Data, FastHashBuilder> {
     let mut temps: HashMap<&[u8], Data, FastHashBuilder> =
@@ -93,8 +94,12 @@ pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Data, FastHashBuilder> {
     temps
 }
 
-pub fn output_results(chunks: Vec<HashMap<&[u8], Data, FastHashBuilder>>) {
-    let mut combined: BTreeMap<&[u8], Data> = BTreeMap::new();
+pub fn output_results<K>(chunks: Vec<HashMap<K, Data, FastHashBuilder>>)
+where
+    K: Borrow<[u8]> + Eq + Hash + Ord,
+{
+    let mut combined: BTreeMap<K, Data> = BTreeMap::new();
+
     for part in chunks {
         for (key, data) in part {
             combined
@@ -112,7 +117,7 @@ pub fn output_results(chunks: Vec<HashMap<&[u8], Data, FastHashBuilder>>) {
         let mean = data.total as f32 / data.count as f32;
         let line = format!(
             "{}={}/{}/{}",
-            String::from_utf8_lossy(station),
+            String::from_utf8_lossy(station.borrow()), // works for both Vec<u8> and &[u8]
             format_number(data.min),
             format_mean(mean),
             format_number(data.max)
@@ -127,6 +132,7 @@ pub fn output_results(chunks: Vec<HashMap<&[u8], Data, FastHashBuilder>>) {
 
     stdout.write_all(b"}").unwrap();
 }
+
 
 #[inline(always)]
 fn format_number(value: i16) -> String {
