@@ -5,10 +5,16 @@ use std::{
     thread::{self, available_parallelism},
 };
 
-use crate::{data::Data, fast_hash::FastHashBuilder, processing::process_chunk};
+use crate::{
+    data::Data,
+    fast_hash::FastHashBuilder,
+    processing::{output_results, process_chunk, process_chunk_vec},
+};
 
-pub fn buffered_reader(file_path: &str) -> Vec<HashMap<Vec<u8>, Data, FastHashBuilder>> {
-    let file = OpenOptions::new().read(true).open(file_path).unwrap();
+pub fn buffered_reader(file_path: &str) {
+    
+thread::scope(|scope| {
+        let file = OpenOptions::new().read(true).open(file_path).unwrap();
     let mut reader = BufReader::new(file);
 
     let total_length = reader.get_ref().metadata().unwrap().len() as usize;
@@ -38,24 +44,27 @@ pub fn buffered_reader(file_path: &str) -> Vec<HashMap<Vec<u8>, Data, FastHashBu
         indices.push(chunk_start..chunk_end);
         offset = chunk_end;
     }
-
-    thread::scope(|scope| {
-        let parts = indices
+       
+       let processed_chunks = indices
             .into_iter()
             .map(|range| {
-                scope.spawn(move || {
-                    let file = OpenOptions::new().read(true).open(file_path).unwrap();
-                    let mut reader = BufReader::new(file);
-                    reader.seek(SeekFrom::Start(range.start as u64)).unwrap();
+                scope
+                    .spawn(move || {
+                        let mut reader = BufReader::new(file);
+                        reader.seek(SeekFrom::Start(range.start as u64)).unwrap();
 
-                    let mut buffer = vec![0u8; range.len()];
-                    reader.read_exact(&mut buffer).unwrap();
+                        let mut buffer = vec![0u8; range.len()];
+                        reader.read_exact(&mut buffer).unwrap();
 
-                    process_chunk(buffer)
-                })
+                         process_chunk_vec(buffer)       
+                    })
+                    
             })
+            .into_iter().map(|handle| handle.join().unwrap())
             .collect::<Vec<_>>();
 
-        parts.into_iter().map(|p| p.join().unwrap()).collect()
-    })
+            
+
+    output_results(processed_chunks);
+    });
 }
