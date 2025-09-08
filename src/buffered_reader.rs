@@ -4,9 +4,7 @@ use std::{
     thread::{self, available_parallelism},
 };
 
-use crate::{
-    processing::{output_results, process_chunk_vec},
-};
+use crate::processing::{output_results, process_chunk_vec};
 
 pub fn buffered_reader(file_path: &str) {
     thread::scope(|scope| {
@@ -41,7 +39,7 @@ pub fn buffered_reader(file_path: &str) {
             offset = chunk_end;
         }
 
-        let processed_chunks = indices
+        let handles = indices
             .into_iter()
             .map(|range| {
                 scope.spawn(move || {
@@ -55,6 +53,9 @@ pub fn buffered_reader(file_path: &str) {
                     process_chunk_vec(buffer)
                 })
             })
+            .collect::<Vec<_>>();
+
+        let processed_chunks = handles
             .into_iter()
             .map(|handle| handle.join().unwrap())
             .collect::<Vec<_>>();

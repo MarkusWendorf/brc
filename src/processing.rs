@@ -133,7 +133,6 @@ where
     stdout.write_all(b"}").unwrap();
 }
 
-
 #[inline(always)]
 fn format_number(value: i16) -> String {
     (value as f32 / 10.0).to_string()

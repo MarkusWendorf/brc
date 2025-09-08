@@ -4,7 +4,7 @@ use memmap2::MmapMut;
 
 use crate::processing::{output_results, process_chunk};
 
-pub fn memory_mapped(file_path: &str) {
+pub fn memory_mapped<const NUM_THREADS: usize>(file_path: &str) {
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -15,8 +15,8 @@ pub fn memory_mapped(file_path: &str) {
     //mmap.advise(memmap2::Advice::Sequential).unwrap();
 
     let processed_chunks = thread::scope(|scope| {
-        let chunk_count = 32;
-        let mut indices: [std::ops::Range<usize>; 32] = from_fn::<_, 32, _>(|_| 0..1);
+        let chunk_count = NUM_THREADS;
+        let mut indices: [std::ops::Range<usize>; NUM_THREADS] = from_fn::<_, NUM_THREADS, _>(|_| 0..1);
 
         let total_length = mmap.len();
 
