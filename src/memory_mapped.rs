@@ -16,7 +16,8 @@ pub fn memory_mapped<const NUM_THREADS: usize>(file_path: &str) {
 
     let processed_chunks = thread::scope(|scope| {
         let chunk_count = NUM_THREADS;
-        let mut indices: [std::ops::Range<usize>; NUM_THREADS] = from_fn::<_, NUM_THREADS, _>(|_| 0..1);
+        let mut indices: [std::ops::Range<usize>; NUM_THREADS] =
+            from_fn::<_, NUM_THREADS, _>(|_| 0..1);
 
         let total_length = mmap.len();
 

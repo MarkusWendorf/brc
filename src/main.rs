@@ -10,7 +10,9 @@ use crate::memory_mapped::memory_mapped;
 static FILE_PATH: &str = "data.txt";
 
 fn main() {
-    memory_mapped::<32>(FILE_PATH);
-
-    //buffered_reader(FILE_PATH);
+    if cfg!(target_os = "macos") {
+        buffered_reader(FILE_PATH);
+    } else {
+        memory_mapped::<32>(FILE_PATH);
+    }
 }
