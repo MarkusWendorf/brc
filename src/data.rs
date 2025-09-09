@@ -2,15 +2,15 @@
 pub struct Data {
     pub min: i16,
     pub max: i16,
-    pub total: u32,
-    pub count: u32,
+    pub total: i64,
+    pub count: i64,
 }
 
 impl Data {
     pub fn update(&mut self, temp: i16) {
         self.min = self.min.min(temp);
         self.max = self.max.max(temp);
-        self.total += temp as u32;
+        self.total += temp as i64;
         self.count += 1;
     }
 
