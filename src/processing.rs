@@ -7,6 +7,42 @@ use std::{
 
 use crate::{data::Data, fast_hash::FastHashBuilder};
 
+pub fn process_chunk<'a, K, F>(data: &'a [u8], map_key_fn: F) -> HashMap<K, Data, FastHashBuilder>
+where
+    K: Eq + Hash,
+    F: Fn(&'a [u8]) -> K,
+{
+    let mut temps: HashMap<K, Data, FastHashBuilder> =
+        HashMap::with_capacity_and_hasher(512, FastHashBuilder);
+
+    let mut start = 0;
+    let mut station_key: &[u8] = b"";
+
+    for (i, &b) in data.iter().enumerate() {
+        if b == b';' {
+            station_key = unsafe { data.get_unchecked(start..i) };
+            start = i + 1;
+        } else if b == b'\n' {
+            let temperature = unsafe { data.get_unchecked(start..i) };
+            let temp = process_temperature(temperature);
+
+            temps
+                .entry(map_key_fn(station_key))
+                .and_modify(|temps| temps.update(temp))
+                .or_insert_with(|| Data {
+                    min: temp,
+                    max: temp,
+                    count: 1,
+                    total: 1,
+                });
+
+            start = i + 1;
+        }
+    }
+
+    temps
+}
+
 #[inline(always)]
 pub fn process_temperature(data: &[u8]) -> i16 {
     let mut sum: i16 = 0;
@@ -24,74 +60,6 @@ pub fn process_temperature(data: &[u8]) -> i16 {
     }
 
     sum
-}
-
-pub fn process_chunk_vec(data: Vec<u8>) -> HashMap<Vec<u8>, Data, FastHashBuilder> {
-    let mut temps: HashMap<Vec<u8>, Data, FastHashBuilder> =
-        HashMap::with_capacity_and_hasher(512, FastHashBuilder);
-
-    let mut start = 0;
-    let mut station_key: &[u8] = b"";
-
-    for (i, &b) in data.iter().enumerate() {
-        if b == b';' {
-            // get_unchecked is safe because we know the range exists because we just iterated over it
-            station_key = unsafe { data.get_unchecked(start..i) };
-            start = i + 1;
-        } else if b == b'\n' {
-            // get_unchecked is safe because we know the range exists because we just iterated over it
-            let temperature = unsafe { data.get_unchecked(start..i) };
-
-            let temp = process_temperature(temperature);
-
-            temps
-                .entry(station_key.to_vec())
-                .and_modify(|temps| temps.update(temp))
-                .or_insert_with(|| Data {
-                    min: temp,
-                    max: temp,
-                    count: 1,
-                    total: 1,
-                });
-            start = i + 1;
-        }
-    }
-
-    temps
-}
-
-pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Data, FastHashBuilder> {
-    let mut temps: HashMap<&[u8], Data, FastHashBuilder> =
-        HashMap::with_capacity_and_hasher(512, FastHashBuilder);
-
-    let mut start = 0;
-    let mut station_key: &[u8] = b"";
-
-    for (i, &b) in data.iter().enumerate() {
-        if b == b';' {
-            // get_unchecked is safe because we know the range exists because we just iterated over it
-            station_key = unsafe { data.get_unchecked(start..i) };
-            start = i + 1;
-        } else if b == b'\n' {
-            // get_unchecked is safe because we know the range exists because we just iterated over it
-            let temperature = unsafe { data.get_unchecked(start..i) };
-
-            let temp = process_temperature(temperature);
-
-            temps
-                .entry(station_key)
-                .and_modify(|temps| temps.update(temp))
-                .or_insert_with(|| Data {
-                    min: temp,
-                    max: temp,
-                    count: 1,
-                    total: 1,
-                });
-            start = i + 1;
-        }
-    }
-
-    temps
 }
 
 pub fn output_results<K>(chunks: Vec<HashMap<K, Data, FastHashBuilder>>)

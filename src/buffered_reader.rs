@@ -4,7 +4,7 @@ use std::{
     thread::{self, available_parallelism},
 };
 
-use crate::processing::{output_results, process_chunk_vec};
+use crate::processing::{output_results, process_chunk};
 
 pub fn buffered_reader(file_path: &str) {
     thread::scope(|scope| {
@@ -50,7 +50,7 @@ pub fn buffered_reader(file_path: &str) {
                     let mut buffer = vec![0u8; range.len()];
                     reader.read_exact(&mut buffer).unwrap();
 
-                    process_chunk_vec(buffer)
+                    process_chunk(&buffer, |k| k.to_vec())
                 })
             })
             .collect::<Vec<_>>();

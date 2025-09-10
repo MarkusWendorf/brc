@@ -51,7 +51,7 @@ pub fn memory_mapped<const NUM_THREADS: usize>(file_path: &str) {
         let chunks = mmap.get_disjoint_mut(indices).unwrap();
 
         chunks
-            .map(|chunk| scope.spawn(|| process_chunk(chunk)))
+            .map(|chunk| scope.spawn(|| process_chunk(chunk, |k| k)))
             .into_iter()
             .map(|handle| handle.join().unwrap())
             .collect::<Vec<_>>()
