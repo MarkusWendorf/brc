@@ -12,7 +12,6 @@ pub fn memory_mapped<const NUM_THREADS: usize>(file_path: &str) {
         .unwrap();
 
     let mut mmap = unsafe { MmapMut::map_mut(&file).unwrap() };
-    //mmap.advise(memmap2::Advice::Sequential).unwrap();
 
     let processed_chunks = thread::scope(|scope| {
         let chunk_count = NUM_THREADS;

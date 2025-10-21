@@ -13,7 +13,7 @@ pub fn buffered_reader(file_path: &str) {
 
         let total_length = reader.get_ref().metadata().unwrap().len() as usize;
 
-        let chunk_count = available_parallelism().unwrap().get() * 4;
+        let chunk_count = available_parallelism().unwrap().get() * 2;
         let chunk_size = total_length / chunk_count;
 
         let mut indices: Vec<std::ops::Range<usize>> = Vec::new();

@@ -1,3 +1,5 @@
+cargo-features = ["profile-rustflags"]
+
 [package]
 name = "brc"
 version = "0.1.0"
@@ -13,6 +15,7 @@ features = ["xxh3", "const_xxh3"]
 [profile.release]
 codegen-units = 1
 lto = "fat"
+opt-level = 3
 panic = "abort"
 debug = 1
-
+rustflags = ["-C", "target-cpu=native"]

@@ -44,6 +44,9 @@ where
 }
 
 #[inline(always)]
+/// Processes byte slice and returns temperature as integer (multiplied by 10)
+///
+/// 25.5 -> 255
 pub fn process_temperature(data: &[u8]) -> i16 {
     let mut sum: i16 = 0;
     let mut exponent = 0;
@@ -76,6 +79,8 @@ where
                 .or_insert(data);
         }
     }
+
+    println!("{}", combined.len());
 
     let mut stdout = std::io::stdout().lock();
     stdout.write_all(b"{").unwrap();
