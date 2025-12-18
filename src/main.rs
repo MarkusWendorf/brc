@@ -4,13 +4,23 @@ mod data;
 mod fast_hash;
 mod memory_mapped;
 mod processing;
+mod bench;
+
+use std::time::Instant;
 
 use crate::memory_mapped::memory_mapped;
+use crate::buffered_reader::buffered_reader;
 
-static FILE_PATH: &str = "data.txt";
+static FILE_PATH: &str = "D:/data.txt";
 
 fn main() {
-    //buffered_reader(FILE_PATH);
-    // Specify number of threads best suited for your machine
-    memory_mapped::<10>(FILE_PATH);
+    let time = Instant::now();
+    
+    if cfg!(target_os = "macos") {
+        buffered_reader(FILE_PATH);
+    } else {
+        memory_mapped::<32>(FILE_PATH);
+    }
+
+    println!("{:?}", time.elapsed());
 }

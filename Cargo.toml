@@ -19,3 +19,5 @@ opt-level = 3
 panic = "abort"
 debug = 1
 rustflags = ["-C", "target-cpu=native"]
+overflow-checks = false
+
