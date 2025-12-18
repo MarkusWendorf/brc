@@ -48,6 +48,30 @@ where
 ///
 /// 25.5 -> 255
 pub fn process_temperature(data: &[u8]) -> i16 {
+    let is_negative = (data[0] == b'-') as i16;
+    let first_number_index = is_negative as usize;
+    let len = data.len();
+
+    let first_digit = (data[first_number_index] - b'0') as i16;
+    let second_digit = (data[first_number_index + 1] - b'0') as i16;
+
+    let decimal_place = (data[len - 1] - b'0') as i16;
+
+    // if we have 4 characters from the start of the first number we have two digits (example: 22.0)
+    let is_double_digit = (len - first_number_index == 4) as i16;
+
+    // 2 digits = first_digit * 100 + second_digit * 10
+    // 1 digit  = first_digit * 10  + second_digit * 0   (second_digit is '.' in this case which should not be added)
+    let integer_part = first_digit * (10 + 90 * is_double_digit) + second_digit * (10 * is_double_digit);      
+
+    let sum = integer_part + decimal_place;
+    let sign = 1 - 2 * is_negative;
+
+    sign * sum
+}
+
+#[inline(always)]
+pub fn process_temperature_simple(data: &[u8]) -> i16 {
     let mut sum: i16 = 0;
     let mut exponent = 0;
 
@@ -56,7 +80,7 @@ pub fn process_temperature(data: &[u8]) -> i16 {
             b'.' => continue,
             b'-' => sum *= -1,
             digit => {
-                sum += (digit - 48) as i16 * 10i16.pow(exponent);
+                sum += (digit - b'0') as i16 * 10i16.pow(exponent);
                 exponent += 1;
             }
         }
