@@ -7,12 +7,8 @@ use std::{
 
 use crate::{data::Data, fast_hash::FastHashBuilder};
 
-pub fn process_chunk<'a, K, F>(data: &'a [u8], map_key_fn: F) -> HashMap<K, Data, FastHashBuilder>
-where
-    K: Eq + Hash,
-    F: Fn(&'a [u8]) -> K,
-{
-    let mut temps: HashMap<K, Data, FastHashBuilder> =
+pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Data, FastHashBuilder> {
+    let mut temps: HashMap<&[u8], Data, FastHashBuilder> =
         HashMap::with_capacity_and_hasher(512, FastHashBuilder);
 
     let mut start = 0;
@@ -27,7 +23,7 @@ where
             let temp = process_temperature(temperature);
 
             temps
-                .entry(map_key_fn(station_key))
+                .entry(station_key)
                 .and_modify(|temps| temps.update(temp))
                 .or_insert_with(|| Data {
                     min: temp,
@@ -62,7 +58,8 @@ pub fn process_temperature(data: &[u8]) -> i16 {
 
     // 2 digits = first_digit * 100 + second_digit * 10
     // 1 digit  = first_digit * 10  + second_digit * 0   (second_digit is '.' in this case which should not be added)
-    let integer_part = first_digit * (10 + 90 * is_double_digit) + second_digit * (10 * is_double_digit);      
+    let integer_part =
+        first_digit * (10 + 90 * is_double_digit) + second_digit * (10 * is_double_digit);
 
     let sum = integer_part + decimal_place;
     let sign = 1 - 2 * is_negative;
@@ -103,8 +100,6 @@ where
                 .or_insert(data);
         }
     }
-
-    println!("{}", combined.len());
 
     let mut stdout = std::io::stdout().lock();
     stdout.write_all(b"{").unwrap();

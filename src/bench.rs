@@ -23,7 +23,7 @@ mod collect_temperatures {
         b.iter(|| {
             crate::processing::process_chunk(
                 "Weather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\nWeather-Stätion;-48.1\nStat;23.1\nStat;22.0\nWeather-Stätion;-28.1\n".as_bytes(),
-             |k| k);
+            )
         });
     }
 }
