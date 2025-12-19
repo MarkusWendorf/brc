@@ -1,3 +1,4 @@
+use memchr::memchr;
 use std::{
     borrow::Borrow,
     collections::{BTreeMap, HashMap},
@@ -14,12 +15,14 @@ pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Data, FastHashBuilder> {
     let mut start = 0;
     let mut station_key: &[u8] = b"";
 
-    for (i, &b) in data.iter().enumerate() {
-        if b == b';' {
-            station_key = unsafe { data.get_unchecked(start..i) };
-            start = i + 1;
-        } else if b == b'\n' {
-            let temperature = unsafe { data.get_unchecked(start..i) };
+    loop {
+        if let Some(semicolon_idx) = memchr(b';', &data[start..]) {
+            station_key = &data[start..(start + semicolon_idx)];
+            start += semicolon_idx + 1;
+        }
+
+        if let Some(newline_idx) = memchr(b'\n', &data[start..]) {
+            let temperature = &data[start..(start + newline_idx)];
             let temp = process_temperature(temperature);
 
             temps
@@ -29,10 +32,12 @@ pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Data, FastHashBuilder> {
                     min: temp,
                     max: temp,
                     count: 1,
-                    total: 1,
+                    total: temp as i64,
                 });
 
-            start = i + 1;
+            start += newline_idx + 1;
+        } else {
+            break; // no more newlines, end of chunk reached
         }
     }
 
@@ -48,10 +53,11 @@ pub fn process_temperature(data: &[u8]) -> i16 {
     let first_number_index = is_negative as usize;
     let len = data.len();
 
-    let first_digit = (data[first_number_index] - b'0') as i16;
-    let second_digit = (data[first_number_index + 1] - b'0') as i16;
+    // ascii: 48 equals 0 decimal
+    let first_digit = data[first_number_index] as i16 - 48;
+    let second_digit = (data[first_number_index + 1] as i16) - 48;
 
-    let decimal_place = (data[len - 1] - b'0') as i16;
+    let decimal_place = (data[len - 1] - 48) as i16;
 
     // if we have 4 characters from the start of the first number we have two digits (example: 22.0)
     let is_double_digit = (len - first_number_index == 4) as i16;
@@ -68,7 +74,7 @@ pub fn process_temperature(data: &[u8]) -> i16 {
 }
 
 #[inline(always)]
-pub fn process_temperature_simple(data: &[u8]) -> i16 {
+pub fn _process_temperature_simple(data: &[u8]) -> i16 {
     let mut sum: i16 = 0;
     let mut exponent = 0;
 
