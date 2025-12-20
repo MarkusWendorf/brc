@@ -8,6 +8,7 @@ edition = "2024"
 [dependencies]
 memchr = "2.7.6"
 memmap2 = "0.9.8"
+rapidhash = "4.2.0"
 
 [dependencies.xxhash-rust]
 version = "0.8.12"

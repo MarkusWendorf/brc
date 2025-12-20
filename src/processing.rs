@@ -1,16 +1,16 @@
 use memchr::memchr;
+use rapidhash::{HashMapExt, RapidHashMap};
 use std::{
     borrow::Borrow,
-    collections::{BTreeMap, HashMap},
+    collections::BTreeMap,
     hash::Hash,
     io::Write,
 };
 
-use crate::{data::Data, fast_hash::FastHashBuilder};
+use crate::data::Data;
 
-pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Data, FastHashBuilder> {
-    let mut temps: HashMap<&[u8], Data, FastHashBuilder> =
-        HashMap::with_capacity_and_hasher(512, FastHashBuilder);
+pub fn process_chunk(data: &[u8]) -> RapidHashMap<&[u8], Data> {
+    let mut temps: RapidHashMap<&[u8], Data> = RapidHashMap::with_capacity(500);
 
     let mut start = 0;
     let mut station_key: &[u8] = b"";
@@ -25,15 +25,19 @@ pub fn process_chunk(data: &[u8]) -> HashMap<&[u8], Data, FastHashBuilder> {
             let temperature = &data[start..(start + newline_idx)];
             let temp = process_temperature(temperature);
 
-            temps
-                .entry(station_key)
-                .and_modify(|temps| temps.update(temp))
-                .or_insert_with(|| Data {
-                    min: temp,
-                    max: temp,
-                    count: 1,
-                    total: temp as i64,
-                });
+            if let Some(data) = temps.get_mut(&station_key) {
+                data.update(temp);
+            } else {
+                temps.insert(
+                    station_key,
+                    Data {
+                        min: temp,
+                        max: temp,
+                        count: 1,
+                        total: temp as i64,
+                    },
+                );
+            }
 
             start += newline_idx + 1;
         } else {
@@ -92,7 +96,7 @@ pub fn _process_temperature_simple(data: &[u8]) -> i16 {
     sum
 }
 
-pub fn output_results<K>(chunks: Vec<HashMap<K, Data, FastHashBuilder>>)
+pub fn output_results<K>(chunks: Vec<RapidHashMap<K, Data>>)
 where
     K: Borrow<[u8]> + Eq + Hash + Ord,
 {
