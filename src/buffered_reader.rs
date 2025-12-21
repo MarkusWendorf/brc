@@ -1,27 +1,31 @@
 use std::{
-    collections::HashMap,
     fs::OpenOptions,
-    io::{BufRead, BufReader, Read, Seek, SeekFrom},
-    thread::{self, available_parallelism},
+    io::{BufRead, BufReader, Seek, SeekFrom},
+    os::unix::fs::FileExt,
+    thread::{self},
 };
+use memchr::memchr;
+
+use rapidhash::{HashMapExt, RapidHashMap};
 
 use crate::{
     data::Data,
-    fast_hash::FastHashBuilder,
     processing::{output_results, process_temperature},
 };
 
 pub fn buffered_reader(file_path: &str) {
     thread::scope(|scope| {
         let file = OpenOptions::new().read(true).open(file_path).unwrap();
+
+        let mut indices: Vec<std::ops::Range<usize>> = Vec::new();
+
         let mut reader = BufReader::new(file);
 
         let total_length = reader.get_ref().metadata().unwrap().len() as usize;
 
-        let chunk_count = available_parallelism().unwrap().get() * 2;
+        let chunk_count = 32; //available_parallelism().unwrap().get() * 2;
         let chunk_size = total_length / chunk_count;
 
-        let mut indices: Vec<std::ops::Range<usize>> = Vec::new();
         let mut offset: usize = 0;
 
         for _ in 0..chunk_count {
@@ -49,11 +53,11 @@ pub fn buffered_reader(file_path: &str) {
             .map(|range| {
                 scope.spawn(move || {
                     let file = OpenOptions::new().read(true).open(file_path).unwrap();
-                    let mut reader = BufReader::new(file);
-                    reader.seek(SeekFrom::Start(range.start as u64)).unwrap();
 
-                    let mut buffer = vec![0u8; range.len()];
-                    reader.read_exact(&mut buffer).unwrap();
+                    let chunk_size = range.len();
+                    let mut buffer = vec![0u8; chunk_size];
+
+                    file.read_at(&mut buffer, range.start as u64).unwrap();
 
                     process_chunk(buffer)
                 })
@@ -69,36 +73,42 @@ pub fn buffered_reader(file_path: &str) {
     });
 }
 
-pub fn process_chunk(data: Vec<u8>) -> HashMap<Vec<u8>, Data, FastHashBuilder> {
-    let mut temps: HashMap<Vec<u8>, Data, FastHashBuilder> =
-        HashMap::with_capacity_and_hasher(512, FastHashBuilder);
+pub fn process_chunk(data: Vec<u8>) -> RapidHashMap<Vec<u8>, Data> {
+    let mut temps: RapidHashMap<Vec<u8>, Data> = RapidHashMap::with_capacity(500);
 
     let mut start = 0;
     let mut station_key: &[u8] = b"";
 
-    for (i, &b) in data.iter().enumerate() {
-        if b == b';' {
-            station_key = unsafe { data.get_unchecked(start..i) };
-            start = i + 1;
-        } else if b == b'\n' {
-            let temperature = unsafe { data.get_unchecked(start..i) };
+    loop {
+        if let Some(semicolon_idx) = memchr(b';', &data[start..]) {
+            station_key = &data[start..(start + semicolon_idx)];
+            start += semicolon_idx + 1;
+        }
+
+        if let Some(newline_idx) = memchr(b'\n', &data[start..]) {
+            let temperature = &data[start..(start + newline_idx)];
             let temp = process_temperature(temperature);
 
-            temps
-                .entry(station_key.to_vec())
-                .and_modify(|temps| temps.update(temp))
-                .or_insert_with(|| Data {
-                    min: temp,
-                    max: temp,
-                    count: 1,
-                    total: 1,
-                });
+            if let Some(data) = temps.get_mut(station_key) {
+                data.update(temp);
+            } else {
+                temps.insert(
+                    station_key.to_vec(),
+                    Data {
+                        min: temp,
+                        max: temp,
+                        count: 1,
+                        total: temp as i64,
+                    },
+                );
+            }
 
-            start = i + 1;
+            start += newline_idx + 1;
+        } else {
+            break; // no more newlines, end of chunk reached
         }
     }
 
     temps
 }
-
 // samply record --windows-symbol-server https://msdl.microsoft.com/download/symbols --breakpad-symbol-server https://symbols.mozilla.org/try/ --windows-symbol-server https://chromium-browser-symsrv.commondatastorage.googleapis.com target/release/brc
