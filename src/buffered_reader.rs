@@ -1,10 +1,10 @@
+use memchr::memchr;
 use std::{
     fs::OpenOptions,
     io::{BufRead, BufReader, Seek, SeekFrom},
     os::unix::fs::FileExt,
-    thread::{self},
+    thread::{self, available_parallelism},
 };
-use memchr::memchr;
 
 use rapidhash::{HashMapExt, RapidHashMap};
 
@@ -23,7 +23,7 @@ pub fn buffered_reader(file_path: &str) {
 
         let total_length = reader.get_ref().metadata().unwrap().len() as usize;
 
-        let chunk_count = 32; //available_parallelism().unwrap().get() * 2;
+        let chunk_count = available_parallelism().unwrap().get();
         let chunk_size = total_length / chunk_count;
 
         let mut offset: usize = 0;
@@ -111,4 +111,3 @@ pub fn process_chunk(data: Vec<u8>) -> RapidHashMap<Vec<u8>, Data> {
 
     temps
 }
-// samply record --windows-symbol-server https://msdl.microsoft.com/download/symbols --breakpad-symbol-server https://symbols.mozilla.org/try/ --windows-symbol-server https://chromium-browser-symsrv.commondatastorage.googleapis.com target/release/brc
